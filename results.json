@@ -1,0 +1,28 @@
+{
+  "natural_frequency_hz": 429.1001267540845,
+  "vortex_shedding_frequency_hz": 91.66666666666667,
+  "wake_frequency_ratio": 4.68109229186274,
+  "resonance_risk": false,
+  "scruton_number": 0.10471975511965978,
+  "stress_amplification_factor": 1.0478075046359865,
+  "material_used": {
+    "preset": "Stainless Steel (SS316 / SS316L)",
+    "elastic_modulus_pa": 193000000000.0,
+    "density_kg_per_m3": 8000.0,
+    "notes": "Marine-grade stainless; use 316L for low-C variations",
+    "overridden": false
+  },
+  "svg_drawing": "<svg width=\"720\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><defs><marker id=\"arrow\" markerWidth=\"10\" markerHeight=\"10\" refX=\"6\" refY=\"5\" orient=\"auto\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#444\"/></marker></defs><rect x=\"0\" y=\"0\" width=\"720\" height=\"240\" fill=\"#fafafa\"/><line x1=\"80\" y1=\"120\" x2=\"480\" y2=\"120\" stroke=\"#333\" stroke-width=\"80.0\" stroke-linecap=\"round\" /><circle cx=\"505.2\" cy=\"120\" r=\"19.2\" fill=\"#777\" stroke=\"#333\" /><circle cx=\"34.0\" cy=\"120\" r=\"40.0\" fill=\"#999\" stroke=\"#333\" /><circle cx=\"420.0\" cy=\"120\" r=\"9.6\" fill=\"none\" stroke=\"#0066cc\" stroke-dasharray=\"4,2\" /><line x1=\"80\" y1=\"80\" x2=\"480\" y2=\"80\" stroke=\"#444\" marker-start=\"url(#arrow)\" marker-end=\"url(#arrow)\"/><text x=\"280.0\" y=\"74\" text-anchor=\"middle\" font-size=\"12px\" fill=\"#222\">Immersion length = 0.200 m</text><text x=\"20.0\" y=\"180.0\" font-size=\"11px\" fill=\"#111\" text-anchor=\"end\">Root \u00d8 0.025 m</text><text x=\"539.2\" y=\"125\" font-size=\"11px\" fill=\"#111\">Tip \u00d8 0.012 m</text><text x=\"459.6\" y=\"125\" font-size=\"11px\" fill=\"#0066cc\">Bore \u00d8 0.006 m</text><text x=\"86\" y=\"72.0\" font-size=\"11px\" fill=\"#111\">Fillet r 0.002 m</text><rect x=\"50\" y=\"70\" width=\"30\" height=\"100\" fill=\"#ddd\" stroke=\"#bbb\" /><text x=\"65\" y=\"60\" font-size=\"11px\" text-anchor=\"middle\" fill=\"#333\">Mount</text></svg>",
+  "intermediates": {
+    "a_root_m2": 0.0004908738521234052,
+    "i_root_m4": 1.9174759848570518e-08,
+    "m_prime_kg_per_m": 3.926990816987242,
+    "mu_tip_ratio": 0.0063661977236758125,
+    "effective_mass_factor": 1.0014642254764454,
+    "damping_ratio_used": 0.01,
+    "st": 0.22,
+    "re_tip_based": 60000.0,
+    "vortex_shedding_freq_calc": "f_s = St * V / D_tip",
+    "natural_freq_formula": "approx cantilever with empirical tip mass correction"
+  }
+}
