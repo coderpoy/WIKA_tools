@@ -5,17 +5,17 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.patches import Rectangle, Circle
 from matplotlib.figure import Figure
 
-# Keep the same clearance as original code (in mm)
-CLEARANCE_MM = 10
+# Default clearance (mm) shown in the UI; user may change this
+DEFAULT_CLEARANCE_MM = 10.0
 
 
-def calculate_sheet_for_quantity(diameter_mm, quantity):
+def calculate_sheet_for_quantity(diameter_mm, quantity, clearance_mm):
     """
     Mode 1:
-    Given disc diameter and required quantity, compute the smallest square shim (mm x mm)
-    that fits at least that many discs in a regular grid with the fixed clearance.
+    Given disc diameter, required quantity and clearance, compute the smallest square shim (mm x mm)
+    that fits at least that many discs in a regular grid.
     """
-    effective_diameter = diameter_mm + CLEARANCE_MM  # mm between centers in grid
+    effective_diameter = diameter_mm + clearance_mm  # mm between centers in grid
     discs_per_side = math.ceil(math.sqrt(quantity))
     sheet_side_mm = discs_per_side * effective_diameter
     total_discs_possible = discs_per_side ** 2
@@ -29,14 +29,14 @@ def calculate_sheet_for_quantity(diameter_mm, quantity):
     }
 
 
-def calculate_quantity_for_sheet(diameter_mm, sheet_w_mm, sheet_h_mm):
+def calculate_quantity_for_sheet(diameter_mm, sheet_w_mm, sheet_h_mm, clearance_mm):
     """
     Mode 2:
-    Given disc diameter and a rectangular shim (mm x mm), compute how many discs fit
-    in a regular grid using the same clearance.
+    Given disc diameter, a rectangular shim (mm x mm), and clearance, compute how many discs fit
+    in a regular grid.
     """
-    effective_diameter = diameter_mm + CLEARANCE_MM
-    # Place centers at (effective_diameter*(i + 0.5)) and ensure disc edges are inside the sheet
+    effective_diameter = diameter_mm + clearance_mm
+    # Number of centers that can be placed across width/height
     discs_per_row = int(sheet_w_mm // effective_diameter)
     discs_per_col = int(sheet_h_mm // effective_diameter)
     total = max(0, discs_per_row * discs_per_col)
@@ -52,12 +52,11 @@ def choose_scale_for_display(width_mm, height_mm, max_px=700):
     """
     Try to use 1:1 scaling (1 mm -> 1 px). If the sheet is too large to fit within max_px
     in either dimension, reduce scale to 1/n where n is the smallest integer >= 1 that
-    makes both dimensions fit. That yields 1:2, 1:3, etc. (i.e. 0.5, 0.333..., ...)
+    makes both dimensions fit. That yields 1:2, 1:3, etc.
     """
     max_dim = max(width_mm, height_mm)
     if max_dim <= max_px:
         return 1.0
-    # smallest integer n >= max_dim/max_px
     n = math.ceil(max_dim / max_px)
     return 1.0 / n
 
@@ -77,12 +76,14 @@ class DiscShimApp(tk.Tk):
         modes_label = ttk.Label(control_frame, text="Mode:")
         modes_label.grid(row=0, column=0, sticky="w")
 
-        rb1 = ttk.Radiobutton(control_frame, text="Need N discs -> compute optimal square shim", variable=self.mode_var,
-                              value="quantity_to_sheet", command=self.on_mode_change)
+        rb1 = ttk.Radiobutton(control_frame, text="Need N discs -> compute optimal square shim",
+                              variable=self.mode_var, value="quantity_to_sheet",
+                              command=self.on_mode_change)
         rb1.grid(row=1, column=0, columnspan=2, sticky="w", pady=2)
 
-        rb2 = ttk.Radiobutton(control_frame, text="Have shim size -> compute how many discs fit", variable=self.mode_var,
-                              value="sheet_to_quantity", command=self.on_mode_change)
+        rb2 = ttk.Radiobutton(control_frame, text="Have shim size -> compute how many discs fit",
+                              variable=self.mode_var, value="sheet_to_quantity",
+                              command=self.on_mode_change)
         rb2.grid(row=2, column=0, columnspan=2, sticky="w", pady=2)
 
         sep = ttk.Separator(control_frame, orient="horizontal")
@@ -94,9 +95,15 @@ class DiscShimApp(tk.Tk):
         self.diameter_entry.grid(row=4, column=1, sticky="ew")
         self.diameter_entry.insert(0, "20")  # sensible default
 
+        # Clearance input (new)
+        ttk.Label(control_frame, text="Clearance between discs (mm):").grid(row=5, column=0, sticky="w")
+        self.clearance_entry = ttk.Entry(control_frame)
+        self.clearance_entry.grid(row=5, column=1, sticky="ew")
+        self.clearance_entry.insert(0, str(int(DEFAULT_CLEARANCE_MM)))
+
         # Mode-specific frames
         self.frame_mode1 = ttk.Frame(control_frame)
-        self.frame_mode1.grid(row=5, column=0, columnspan=2, sticky="we", pady=6)
+        self.frame_mode1.grid(row=6, column=0, columnspan=2, sticky="we", pady=6)
 
         ttk.Label(self.frame_mode1, text="Quantity of discs:").grid(row=0, column=0, sticky="w")
         self.quantity_entry = ttk.Entry(self.frame_mode1)
@@ -104,7 +111,7 @@ class DiscShimApp(tk.Tk):
         self.quantity_entry.insert(0, "16")
 
         self.frame_mode2 = ttk.Frame(control_frame)
-        self.frame_mode2.grid(row=6, column=0, columnspan=2, sticky="we", pady=6)
+        self.frame_mode2.grid(row=7, column=0, columnspan=2, sticky="we", pady=6)
 
         ttk.Label(self.frame_mode2, text="Shim width (mm):").grid(row=0, column=0, sticky="w")
         self.width_entry = ttk.Entry(self.frame_mode2)
@@ -118,15 +125,15 @@ class DiscShimApp(tk.Tk):
 
         # Results
         res_label = ttk.Label(control_frame, text="Results:")
-        res_label.grid(row=7, column=0, sticky="w", pady=(8, 0))
+        res_label.grid(row=8, column=0, sticky="w", pady=(8, 0))
         self.results_text = tk.Text(control_frame, width=36, height=10, wrap="word")
-        self.results_text.grid(row=8, column=0, columnspan=2, pady=4)
+        self.results_text.grid(row=9, column=0, columnspan=2, pady=4)
 
         # Buttons
         calc_btn = ttk.Button(control_frame, text="Calculate & Visualize", command=self.on_calculate)
-        calc_btn.grid(row=9, column=0, pady=8, sticky="we")
+        calc_btn.grid(row=10, column=0, pady=8, sticky="we")
         clear_btn = ttk.Button(control_frame, text="Clear Results", command=lambda: self.results_text.delete("1.0", tk.END))
-        clear_btn.grid(row=9, column=1, pady=8, sticky="we")
+        clear_btn.grid(row=10, column=1, pady=8, sticky="we")
 
         # Right panel for visualization
         viz_frame = ttk.Frame(self)
@@ -151,6 +158,19 @@ class DiscShimApp(tk.Tk):
             self.frame_mode2.lift()
             self.frame_mode1.lower()
 
+    def read_clearance(self):
+        """Read and validate clearance value from the UI. Returns float clearance_mm or raises ValueError."""
+        txt = self.clearance_entry.get().strip()
+        if txt == "":
+            return DEFAULT_CLEARANCE_MM
+        try:
+            val = float(txt)
+            if val < 0:
+                raise ValueError("Clearance must be non-negative.")
+            return val
+        except ValueError:
+            raise ValueError("Clearance must be a non-negative number (mm).")
+
     def on_calculate(self):
         mode = self.mode_var.get()
         try:
@@ -159,6 +179,13 @@ class DiscShimApp(tk.Tk):
                 raise ValueError
         except ValueError:
             messagebox.showerror("Invalid input", "Please enter a valid positive number for disc diameter.")
+            return
+
+        # Read clearance
+        try:
+            clearance_mm = self.read_clearance()
+        except ValueError as e:
+            messagebox.showerror("Invalid clearance", str(e))
             return
 
         self.results_text.delete("1.0", tk.END)
@@ -173,14 +200,14 @@ class DiscShimApp(tk.Tk):
                 messagebox.showerror("Invalid input", "Please enter a valid positive integer for quantity.")
                 return
 
-            res = calculate_sheet_for_quantity(diameter_mm, quantity)
+            res = calculate_sheet_for_quantity(diameter_mm, quantity, clearance_mm)
             w_mm = res["sheet_width_mm"]
             h_mm = res["sheet_height_mm"]
 
             msg = (
                 f"Mode: Quantity -> Optimal Square Shim\n"
                 f"Disc diameter: {diameter_mm:.2f} mm\n"
-                f"Clearance: {CLEARANCE_MM} mm\n"
+                f"Clearance: {clearance_mm:.2f} mm\n"
                 f"Requested quantity: {quantity}\n\n"
                 f"Optimal shim size (W x H): {w_mm:.1f} mm x {h_mm:.1f} mm\n"
                 f"Discs per side: {res['discs_per_row']} x {res['discs_per_col']} = {res['total_discs_possible']}\n"
@@ -198,7 +225,7 @@ class DiscShimApp(tk.Tk):
                     # Ensure actual disc fits inside sheet
                     if cx + r <= w_mm + 1e-6 and cy + r <= h_mm + 1e-6:
                         centers.append((cx, cy))
-            self.draw_sheet_and_discs(w_mm, h_mm, centers, r)
+            self.draw_sheet_and_discs(w_mm, h_mm, centers, r, clearance_mm)
 
         else:
             # Mode 2
@@ -211,11 +238,11 @@ class DiscShimApp(tk.Tk):
                 messagebox.showerror("Invalid input", "Please enter valid positive numbers for shim dimensions.")
                 return
 
-            res = calculate_quantity_for_sheet(diameter_mm, w_mm, h_mm)
+            res = calculate_quantity_for_sheet(diameter_mm, w_mm, h_mm, clearance_mm)
             msg = (
                 f"Mode: Shim -> Quantity\n"
                 f"Disc diameter: {diameter_mm:.2f} mm\n"
-                f"Clearance: {CLEARANCE_MM} mm\n\n"
+                f"Clearance: {clearance_mm:.2f} mm\n\n"
                 f"Shim size (W x H): {w_mm:.1f} mm x {h_mm:.1f} mm\n"
                 f"Discs per row: {res['discs_per_row']}\n"
                 f"Discs per column: {res['discs_per_col']}\n"
@@ -232,14 +259,13 @@ class DiscShimApp(tk.Tk):
                     cy = (j + 0.5) * eff
                     if cx + r <= w_mm + 1e-6 and cy + r <= h_mm + 1e-6:
                         centers.append((cx, cy))
-            self.draw_sheet_and_discs(w_mm, h_mm, centers, r)
+            self.draw_sheet_and_discs(w_mm, h_mm, centers, r, clearance_mm)
 
-    def draw_sheet_and_discs(self, sheet_w_mm, sheet_h_mm, centers_mm, radius_mm):
+    def draw_sheet_and_discs(self, sheet_w_mm, sheet_h_mm, centers_mm, radius_mm, clearance_mm):
         """
         Draw the sheet and discs inside the embedded matplotlib canvas.
         Uses a scale chosen by choose_scale_for_display to attempt 1:1 mm to px mapping.
         """
-
         max_display_px = 700  # target maximum size in pixels for the largest dimension
         scale = choose_scale_for_display(sheet_w_mm, sheet_h_mm, max_px=max_display_px)
         # Convert mm coords to px units for plotting
@@ -251,8 +277,6 @@ class DiscShimApp(tk.Tk):
         fig_h_in = max(height_px / dpi, 4.0)
 
         # Clear old widgets from the viz frame BEFORE creating a new canvas.
-        # This prevents creating the new canvas widget and then immediately destroying it
-        # (which caused the TclError "bad window path name").
         for child in self.viz_frame.winfo_children():
             child.destroy()
 
@@ -280,15 +304,23 @@ class DiscShimApp(tk.Tk):
             if idx == 0:
                 self.ax.text(cx, cy, f"{radius_mm*2:.0f} mm", color="black", fontsize=8, ha="center", va="center", weight="bold")
 
+        # Optionally draw center grid points or clearance visualization (light lines every effective diameter)
+        eff_mm = (radius_mm * 2) + clearance_mm
+        # draw faint guidelines for the effective grid
+        for i in range(int(math.ceil(sheet_w_mm / eff_mm)) + 1):
+            x = i * eff_mm * scale
+            self.ax.plot([x, x], [0, height_px], color="#cccccc", linewidth=0.5, linestyle="--")
+        for j in range(int(math.ceil(sheet_h_mm / eff_mm)) + 1):
+            y = j * eff_mm * scale
+            self.ax.plot([0, width_px], [y, y], color="#cccccc", linewidth=0.5, linestyle="--")
+
         # Grid and labels: show axes in mm (convert ticks back to mm for user friendliness)
         self.ax.set_xlabel("mm (scaled)")
         self.ax.set_ylabel("mm (scaled)")
-        # Compute tick positions in px
         xticks_px = self._nice_ticks(0, width_px)
         yticks_px = self._nice_ticks(0, height_px)
         self.ax.set_xticks(xticks_px)
         self.ax.set_yticks(yticks_px)
-        # Convert tick labels back to mm by dividing by scale
         xticks_mm = [f"{int(round(x / scale))}" for x in xticks_px]
         yticks_mm = [f"{int(round(y / scale))}" for y in yticks_px]
         self.ax.set_xticklabels(xticks_mm)
@@ -301,7 +333,7 @@ class DiscShimApp(tk.Tk):
         else:
             denom = int(round(1.0 / scale))
             scale_text = f"1:{denom} (1 display px = {denom} mm)"
-        self.ax.set_title(f"Sheet layout — Scale {scale_text}")
+        self.ax.set_title(f"Sheet layout — Scale {scale_text} — Clearance {clearance_mm:.1f} mm")
 
         # Create and pack the new canvas into the viz frame
         self.canvas = FigureCanvasTkAgg(self.figure, master=self.viz_frame)
@@ -317,18 +349,14 @@ class DiscShimApp(tk.Tk):
         span = end_px - start_px
         if span <= 0:
             return [0]
-        # prefer ticks at multiples of 50, 100, 200 px etc depending on span
         preferred_steps = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500]
-        # choose step in px
         step = max(1, int(span / max_ticks))
-        # find nearest preferred step <= step, else use step
         chosen = None
         for ps in preferred_steps:
             if ps <= step:
                 chosen = ps
         if chosen is None:
             chosen = max(1, step)
-        # generate ticks
         first = (math.floor(start_px / chosen) + 1) * chosen
         ticks = []
         x = first
